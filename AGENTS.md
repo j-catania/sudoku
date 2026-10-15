@@ -2,7 +2,7 @@
 
 ## Scope and architecture
 - This is a dependency-free static Sudoku app. `index.html` contains the interface, `style.css` its responsive themes, and `app.js` the game logic.
-- Keep game data, language, and theme preferences in browser `localStorage`. Do not add a backend, analytics, or network persistence; keep privacy copy accurate.
+- Keep game data, language, theme, and gameplay preferences in browser `localStorage`. Do not add a backend, analytics, or network persistence; keep privacy copy accurate.
 
 ## Implementation conventions
 - Use plain HTML, CSS, and browser JavaScript; do not add a framework or build step.

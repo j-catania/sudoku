@@ -23,6 +23,7 @@ const TRANSLATIONS = {
     notes: "Notes",
     hint: "Indice",
     check: "Vérifier",
+    highlightErrors: "Surligner les erreurs",
     difficultyEyebrow: "À VOTRE RYTHME",
     difficultyTitle: "Choisissez votre défi",
     difficultyLabel: "Niveau de difficulté",
@@ -51,7 +52,7 @@ const TRANSLATIONS = {
     helpCopy: "Remplissez la grille pour que chaque ligne, chaque colonne et chacun des neuf carrés contienne les chiffres de 1 à 9, sans répétition.",
     helpStepOne: "Sélectionnez une case puis un chiffre, ou tapez directement au clavier.",
     helpStepTwo: "Activez Notes pour garder vos hypothèses dans une case.",
-    helpStepThree: "Les cases colorées en rouge signalent un chiffre incorrect. Besoin d'aide ? Utilisez Indice.",
+    helpStepThree: "Si l'option est activée, les cases rouges signalent un chiffre incorrect. Besoin d'aide ? Utilisez Indice.",
     gotIt: "C'est parti !",
     installTitle: "Emportez Sudoku avec vous",
     installMessage: "Installez l'app sur votre téléphone pour la retrouver facilement, sans publicité.",
@@ -76,10 +77,12 @@ const TRANSLATIONS = {
     checkClear: "Tout est juste jusqu'ici. Continuez comme ça !",
     checkWrongOne: "{count} chiffre à revoir, en rouge sur la grille.",
     checkWrongMany: "{count} chiffres à revoir, en rouge sur la grille.",
+    checkWrongHiddenOne: "{count} chiffre incorrect.",
+    checkWrongHiddenMany: "{count} chiffres incorrects.",
     alreadyCompleted: "Cette grille est déjà terminée. À la suivante ?",
-    hintSelect: "Sélectionnez une case vide pour recevoir un indice.",
-    hintSuccess: "Un petit coup de pouce, et c'est reparti ✨",
-    hintCompleted: "Bien joué ! Grille terminée en {time} 🎉",
+    hintSelect: "Aucune case vide à suggérer. Vérifiez les chiffres déjà saisis.",
+    hintBlocked: "Les cases restantes semblent bloquées par les chiffres saisis. Vérifiez la grille avant de demander un indice.",
+    hintReveal: "La colonne {column} est un bon point de départ : la case en ligne {row} a le moins de possibilités.",
     gameCompleted: "Bravo ! Vous avez terminé en {time} 🎉",
     newGameToast: "Nouvelle grille « {level} » prête !",
     notesOn: "Mode notes activé",
@@ -109,6 +112,7 @@ const TRANSLATIONS = {
     notes: "Notes",
     hint: "Hint",
     check: "Check",
+    highlightErrors: "Highlight mistakes",
     difficultyEyebrow: "AT YOUR OWN PACE",
     difficultyTitle: "Choose your challenge",
     difficultyLabel: "Difficulty level",
@@ -137,7 +141,7 @@ const TRANSLATIONS = {
     helpCopy: "Fill the grid so every row, column, and 3×3 box contains the numbers 1 to 9, with no repeats.",
     helpStepOne: "Select a cell and a number, or type a number on your keyboard.",
     helpStepTwo: "Turn on Notes to keep your possibilities in a cell.",
-    helpStepThree: "Red cells mark an incorrect number. Need a hand? Use Hint.",
+    helpStepThree: "When enabled, red cells mark an incorrect number. Need a hand? Use Hint.",
     gotIt: "Let's play!",
     installTitle: "Take Sudoku with you",
     installMessage: "Install the app on your phone for quick access to ad-free Sudoku.",
@@ -162,10 +166,12 @@ const TRANSLATIONS = {
     checkClear: "Everything is correct so far. Keep it up!",
     checkWrongOne: "{count} number to review, highlighted in red.",
     checkWrongMany: "{count} numbers to review, highlighted in red.",
+    checkWrongHiddenOne: "{count} incorrect number.",
+    checkWrongHiddenMany: "{count} incorrect numbers.",
     alreadyCompleted: "This puzzle is already complete. Ready for another?",
-    hintSelect: "Select an empty cell to get a hint.",
-    hintSuccess: "A little help, and you're back in the game ✨",
-    hintCompleted: "Well done! Puzzle complete in {time} 🎉",
+    hintSelect: "There are no empty cells to suggest. Check the numbers already entered.",
+    hintBlocked: "The remaining cells seem blocked by entered numbers. Check the grid before asking for a hint.",
+    hintReveal: "Column {column} is a good place to start: the cell in row {row} has the fewest possibilities.",
     gameCompleted: "Congratulations! You finished in {time} 🎉",
     newGameToast: "Your new {level} puzzle is ready!",
     notesOn: "Notes mode on",
@@ -189,6 +195,7 @@ const mistakesElement = document.querySelector("#mistakes");
 const statusElement = document.querySelector("#game-status");
 const toastElement = document.querySelector("#toast");
 const notesButton = document.querySelector("#notes-button");
+const errorHighlightToggle = document.querySelector("#error-highlight-toggle");
 const dialogElement = document.querySelector("#help-dialog");
 const themeButton = document.querySelector("#theme-button");
 const themeIcon = document.querySelector("#theme-icon");
@@ -203,6 +210,7 @@ let solution = [];
 let values = [];
 let notes = [];
 let selectedCell = null;
+let hintedColumn = null;
 let activeLevel = "easy";
 let notesMode = false;
 let mistakes = 0;
@@ -210,6 +218,8 @@ let elapsedSeconds = 0;
 let completed = false;
 let currentLanguage = "fr";
 let currentTheme = "light";
+let highlightMistakes = false;
+let highlightMistakesPreferenceSet = false;
 let storageWarningShown = false;
 let deferredInstallPrompt = null;
 let installMode = null;
@@ -340,6 +350,8 @@ function isValidSave(save) {
       !["easy", "medium", "hard", "expert"].includes(save.level) ||
       !["fr", "en"].includes(save.language) ||
       !(save.theme === undefined || ["light", "dark"].includes(save.theme)) ||
+      !(save.highlightMistakes === undefined || typeof save.highlightMistakes === "boolean") ||
+      !(save.highlightMistakesPreferenceSet === undefined || typeof save.highlightMistakesPreferenceSet === "boolean") ||
       typeof save.notesMode !== "boolean" ||
       typeof save.completed !== "boolean" ||
       !Number.isInteger(save.mistakes) || save.mistakes < 0 ||
@@ -369,6 +381,8 @@ function saveGame() {
     level: activeLevel,
     language: currentLanguage,
     theme: currentTheme,
+    highlightMistakes,
+    highlightMistakesPreferenceSet,
     puzzle,
     solution,
     values,
@@ -418,6 +432,8 @@ function restoreGame() {
   activeLevel = save.level;
   currentLanguage = save.language;
   currentTheme = save.theme ?? "light";
+  highlightMistakesPreferenceSet = save.highlightMistakesPreferenceSet === true;
+  highlightMistakes = highlightMistakesPreferenceSet ? save.highlightMistakes : false;
   puzzle = save.puzzle;
   solution = save.solution;
   values = save.values;
@@ -471,6 +487,7 @@ function applyLanguage() {
   timerElement.textContent = formatTime(elapsedSeconds);
   notesButton.setAttribute("aria-pressed", String(notesMode));
   notesButton.classList.toggle("active", notesMode);
+  errorHighlightToggle.checked = highlightMistakes;
   applyTheme();
   updateDifficultyButtons();
   renderBoard();
@@ -507,8 +524,9 @@ function renderBoard() {
       }
       cell.append(noteGrid);
     }
-    if (values[index] && values[index] !== solution[index]) cell.classList.add("error");
+    if (highlightMistakes && values[index] && values[index] !== solution[index]) cell.classList.add("error");
     if (selectedCell === index) cell.classList.add("selected");
+    if (hintedColumn === column) cell.classList.add("hint-column");
     if (selectedCell !== null) {
       const selectedRow = Math.floor(selectedCell / 9);
       const selectedColumn = selectedCell % 9;
@@ -536,6 +554,7 @@ function updateNumberPad() {
 
 function selectCell(index) {
   selectedCell = index;
+  hintedColumn = null;
   renderBoard();
 }
 
@@ -580,31 +599,70 @@ function checkBoard() {
     showToast(t("checkClear"));
     return;
   }
-  showToast(t(wrongCells === 1 ? "checkWrongOne" : "checkWrongMany", { count: wrongCells }));
+  const checkMessage = highlightMistakes
+    ? (wrongCells === 1 ? "checkWrongOne" : "checkWrongMany")
+    : (wrongCells === 1 ? "checkWrongHiddenOne" : "checkWrongHiddenMany");
+  showToast(t(checkMessage, { count: wrongCells }));
   renderBoard();
 }
 
 function hint() {
   if (completed) return;
-  const target = selectedCell !== null && !puzzle[selectedCell] && values[selectedCell] !== solution[selectedCell]
-    ? selectedCell
-    : values.findIndex((value, index) => !puzzle[index] && value !== solution[index]);
+  let target = -1;
+  let fewestCandidates = 10;
+  let mostFilledColumn = -1;
+
+  for (let index = 0; index < 81; index += 1) {
+    if (puzzle[index] || values[index]) continue;
+    const row = Math.floor(index / 9);
+    const column = index % 9;
+    let used = 0;
+
+    for (let offset = 0; offset < 9; offset += 1) {
+      const rowValue = values[row * 9 + offset];
+      const columnValue = values[offset * 9 + column];
+      if (rowValue) used |= 1 << rowValue;
+      if (columnValue) used |= 1 << columnValue;
+    }
+
+    const firstBoxRow = Math.floor(row / 3) * 3;
+    const firstBoxColumn = Math.floor(column / 3) * 3;
+    for (let boxRow = firstBoxRow; boxRow < firstBoxRow + 3; boxRow += 1) {
+      for (let boxColumn = firstBoxColumn; boxColumn < firstBoxColumn + 3; boxColumn += 1) {
+        const boxValue = values[boxRow * 9 + boxColumn];
+        if (boxValue) used |= 1 << boxValue;
+      }
+    }
+
+    let candidateCount = 0;
+    for (let digit = 1; digit <= 9; digit += 1) {
+      if (!(used & (1 << digit))) candidateCount += 1;
+    }
+    if (candidateCount === 0) continue;
+
+    const filledColumn = values.reduce((count, value, cellIndex) =>
+      count + Number(cellIndex % 9 === column && value !== 0), 0);
+    if (candidateCount < fewestCandidates ||
+        (candidateCount === fewestCandidates && filledColumn > mostFilledColumn)) {
+      target = index;
+      fewestCandidates = candidateCount;
+      mostFilledColumn = filledColumn;
+    }
+  }
+
   if (target === -1) {
-    showToast(t("hintSelect"));
+    showToast(values.some((value, index) => !puzzle[index] && value === 0)
+      ? t("hintBlocked")
+      : t("hintSelect"));
     return;
   }
   selectedCell = target;
-  values[target] = solution[target];
-  notes[target].clear();
+  hintedColumn = target % 9;
   renderBoard();
-  if (values.every((value, index) => value === solution[index])) {
-    completed = true;
-    statusElement.textContent = t("statusCompleted");
-    renderBoard();
-    showToast(t("hintCompleted", { time: formatTime(elapsedSeconds) }));
-  } else {
-    showToast(t("hintSuccess"));
-  }
+  showToast(t("hintReveal", {
+    row: Math.floor(target / 9) + 1,
+    column: target % 9 + 1,
+  }));
 }
 
 function formatTime(seconds) {
@@ -671,6 +729,7 @@ function startGame(level = activeLevel) {
   values = [...puzzle];
   notes = Array.from({ length: 81 }, () => new Set());
   selectedCell = null;
+  hintedColumn = null;
   mistakes = 0;
   elapsedSeconds = 0;
   completed = false;
@@ -712,6 +771,11 @@ document.querySelector("#notes-button").addEventListener("click", () => {
   notesButton.classList.toggle("active", notesMode);
   saveGame();
   showToast(t(notesMode ? "notesOn" : "notesOff"));
+});
+errorHighlightToggle.addEventListener("change", () => {
+  highlightMistakes = errorHighlightToggle.checked;
+  highlightMistakesPreferenceSet = true;
+  renderBoard();
 });
 document.querySelectorAll("[data-language]").forEach((button) => {
   button.addEventListener("click", () => {

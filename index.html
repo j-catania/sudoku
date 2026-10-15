@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f2" />
+    <title>Sudoku — une pause qui fait du bien</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Sudoku, accueil" data-i18n-aria-label="brandLabel">
+          <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+          <span>sudoku<span class="brand-period">.</span></span>
+        </a>
+        <div class="topbar-note"><span class="sparkle" aria-hidden="true">✳</span><span data-i18n="topbarNote">Votre petit moment à vous</span></div>
+        <div class="language-switch" role="group" aria-label="Langue" data-i18n-aria-label="languageLabel">
+          <button type="button" data-language="fr" aria-pressed="true">FR</button>
+          <button type="button" data-language="en" aria-pressed="false">EN</button>
+        </div>
+        <button class="icon-button" id="help-button" type="button" aria-label="Afficher les règles" title="Comment jouer" data-i18n-aria-label="helpLabel" data-i18n-title="helpTitle">?</button>
+        <button class="icon-button theme-button" id="theme-button" type="button" aria-label="Activer le mode sombre" title="Activer le mode sombre" aria-pressed="false">
+          <span id="theme-icon" aria-hidden="true">☾</span>
+        </button>
+      </header>
+
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow" data-i18n="eyebrow">LE JEU DU JOUR</p>
+        <h1 id="page-title"><span data-i18n="headlineFirst">Un peu de calme,</span><br class="mobile-break" /> <span data-i18n="headlineSecond">une grille à la fois.</span></h1>
+        <p class="intro-copy" data-i18n="introCopy">Choisissez votre niveau et laissez les chiffres faire leur magie.</p>
+      </section>
+
+      <section class="game-layout" aria-label="Jeu de Sudoku" data-i18n-aria-label="gameLabel">
+        <div class="board-card">
+          <div class="board-topline">
+            <div class="game-label"><span class="live-dot"></span><span id="game-status">À vous de jouer</span></div>
+            <div class="stats">
+              <div class="stat"><span class="stat-icon clock-icon" aria-hidden="true">◷</span><span id="timer">00:00</span></div>
+              <span class="stat-divider"></span>
+              <div class="stat" title="Erreurs" data-i18n-title="mistakesLabel"><span class="stat-icon error-icon" aria-hidden="true">✳</span><span id="mistakes">0</span></div>
+            </div>
+          </div>
+
+          <div class="board-wrap">
+            <div class="sudoku-board" id="board" role="grid" aria-label="Grille de Sudoku" data-i18n-aria-label="boardLabel"></div>
+          </div>
+
+          <div class="number-pad" id="number-pad" aria-label="Choisir un chiffre" data-i18n-aria-label="numberPadLabel">
+            <button type="button" data-number="1" aria-label="Chiffre 1">1</button>
+            <button type="button" data-number="2" aria-label="Chiffre 2">2</button>
+            <button type="button" data-number="3" aria-label="Chiffre 3">3</button>
+            <button type="button" data-number="4" aria-label="Chiffre 4">4</button>
+            <button type="button" data-number="5" aria-label="Chiffre 5">5</button>
+            <button type="button" data-number="6" aria-label="Chiffre 6">6</button>
+            <button type="button" data-number="7" aria-label="Chiffre 7">7</button>
+            <button type="button" data-number="8" aria-label="Chiffre 8">8</button>
+            <button type="button" data-number="9" aria-label="Chiffre 9">9</button>
+          </div>
+
+          <div class="board-actions">
+            <button class="text-action" id="erase-button" type="button"><span aria-hidden="true">⌫</span> <span data-i18n="erase">Effacer</span></button>
+            <button class="text-action pencil-action" id="notes-button" type="button" aria-pressed="false"><span aria-hidden="true">✎</span> <span data-i18n="notes">Notes</span></button>
+            <button class="text-action" id="hint-button" type="button"><span aria-hidden="true">✦</span> <span data-i18n="hint">Indice</span></button>
+            <button class="text-action" id="check-button" type="button"><span aria-hidden="true">✓</span> <span data-i18n="check">Vérifier</span></button>
+          </div>
+        </div>
+
+        <aside class="side-panel">
+          <section class="panel-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow" data-i18n="difficultyEyebrow">À VOTRE RYTHME</p>
+                <h2 data-i18n="difficultyTitle">Choisissez votre défi</h2>
+              </div>
+              <span class="heading-sparkle" aria-hidden="true">✳</span>
+            </div>
+            <div class="difficulty-list" id="difficulty-list" role="group" aria-label="Niveau de difficulté" data-i18n-aria-label="difficultyLabel">
+              <button class="difficulty-option" type="button" data-level="easy">
+                <span class="difficulty-emoji" aria-hidden="true">🌱</span>
+                <span class="difficulty-copy"><strong data-i18n="easyName">Tout doux</strong><small data-i18n="easyDescription">Pour se mettre en train</small></span>
+                <span class="option-indicator"></span>
+              </button>
+              <button class="difficulty-option" type="button" data-level="medium">
+                <span class="difficulty-emoji" aria-hidden="true">☀️</span>
+                <span class="difficulty-copy"><strong data-i18n="mediumName">Équilibré</strong><small data-i18n="mediumDescription">Un joli petit défi</small></span>
+                <span class="option-indicator"></span>
+              </button>
+              <button class="difficulty-option" type="button" data-level="hard">
+                <span class="difficulty-emoji" aria-hidden="true">🌿</span>
+                <span class="difficulty-copy"><strong data-i18n="hardName">Corsé</strong><small data-i18n="hardDescription">Pour les esprits affûtés</small></span>
+                <span class="option-indicator"></span>
+              </button>
+              <button class="difficulty-option" type="button" data-level="expert">
+                <span class="difficulty-emoji" aria-hidden="true">🔥</span>
+                <span class="difficulty-copy"><strong data-i18n="expertName">Expert</strong><small data-i18n="expertDescription">Le grand frisson</small></span>
+                <span class="option-indicator"></span>
+              </button>
+            </div>
+            <button class="new-game-button" id="new-game-button" type="button">
+              <span aria-hidden="true">↻</span> <span data-i18n="newGame">Nouvelle partie</span>
+            </button>
+          </section>
+
+          <section class="tip-card">
+            <span class="tip-icon" aria-hidden="true">✦</span>
+            <div><strong data-i18n="tipTitle">Un petit rappel</strong><p data-i18n="tipCopy">Chaque chiffre de 1 à 9 apparaît une seule fois par ligne, colonne et carré.</p></div>
+          </section>
+          <p class="keyboard-hint"><span data-i18n="keyboardHintPrefix">ASTUCE : utilisez les touches</span> <kbd>1</kbd> – <kbd>9</kbd> <span data-i18n="keyboardHintSuffix">de votre clavier.</span></p>
+        </aside>
+      </section>
+
+      <footer class="page-footer">
+        <div class="footer-author"><span data-i18n="footerMadeWith">Fait avec</span> <span class="heart" aria-label="amour" data-i18n-aria-label="heart">♥</span> <span data-i18n="footerBy">par</span> <a href="https://jcatania.io">j-catania</a></div>
+        <span class="footer-tagline" data-i18n="footerTagline">Pas de pression. Juste vous et la grille.</span>
+        <div class="footer-details">
+          <span class="ai-credit" data-i18n="aiCredit">Réalisé avec GPT-6 Luna</span>
+          <p class="privacy-note" data-i18n="privacyNote">Ce site existe pour vous offrir un Sudoku gratuit, sans publicité. Votre partie est sauvegardée uniquement dans le stockage local de ce navigateur ; rien n'est envoyé ni conservé sur un serveur.</p>
+        </div>
+      </footer>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <dialog class="help-dialog" id="help-dialog">
+      <button class="dialog-close" id="close-help" type="button" aria-label="Fermer" data-i18n-aria-label="close">×</button>
+      <p class="eyebrow" data-i18n="helpEyebrow">COMMENT JOUER</p>
+      <h2 data-i18n="helpHeading">Les règles sont simples.</h2>
+      <p data-i18n="helpCopy">Remplissez la grille pour que chaque ligne, chaque colonne et chacun des neuf carrés contienne les chiffres de 1 à 9, sans répétition.</p>
+      <ul>
+        <li data-i18n="helpStepOne">Sélectionnez une case puis un chiffre, ou tapez directement au clavier.</li>
+        <li data-i18n="helpStepTwo">Activez Notes pour garder vos hypothèses dans une case.</li>
+        <li data-i18n="helpStepThree">Les cases colorées en rouge signalent un chiffre incorrect. Besoin d'aide ? Utilisez Indice.</li>
+      </ul>
+      <button class="new-game-button" id="got-it-button" type="button" data-i18n="gotIt">C'est parti !</button>
+    </dialog>
+  </body>
+</html>

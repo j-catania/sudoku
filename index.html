@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f6f2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Sudoku" />
     <title>Sudoku — une pause qui fait du bien</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="style.css" />
     <script src="app.js" defer></script>
   </head>
@@ -31,6 +36,18 @@
         <h1 id="page-title"><span data-i18n="headlineFirst">Un peu de calme,</span><br class="mobile-break" /> <span data-i18n="headlineSecond">une grille à la fois.</span></h1>
         <p class="intro-copy" data-i18n="introCopy">Choisissez votre niveau et laissez les chiffres faire leur magie.</p>
       </section>
+
+      <aside class="install-banner" id="install-banner" aria-labelledby="install-title" hidden>
+        <img class="install-icon" src="icon-192.png" alt="" />
+        <div class="install-copy">
+          <strong id="install-title" data-i18n="installTitle">Emportez Sudoku avec vous</strong>
+          <p id="install-message" data-i18n="installMessage">Installez l'app sur votre téléphone pour la retrouver facilement, sans publicité.</p>
+        </div>
+        <div class="install-actions">
+          <button class="install-action" id="install-action" type="button" data-i18n="installButton">Installer</button>
+          <button class="install-dismiss" id="install-dismiss" type="button" aria-label="Fermer" data-i18n-aria-label="dismissInstall">×</button>
+        </div>
+      </aside>
 
       <section class="game-layout" aria-label="Jeu de Sudoku" data-i18n-aria-label="gameLabel">
         <div class="board-card">
@@ -133,6 +150,13 @@
         <li data-i18n="helpStepThree">Les cases colorées en rouge signalent un chiffre incorrect. Besoin d'aide ? Utilisez Indice.</li>
       </ul>
       <button class="new-game-button" id="got-it-button" type="button" data-i18n="gotIt">C'est parti !</button>
+    </dialog>
+    <dialog class="help-dialog" id="install-help-dialog">
+      <button class="dialog-close" id="close-install-help" type="button" aria-label="Fermer" data-i18n-aria-label="dismissInstall">×</button>
+      <p class="eyebrow" data-i18n="installHelpEyebrow">INSTALLATION</p>
+      <h2 data-i18n="installHelpTitle">Ajouter Sudoku à l'écran d'accueil</h2>
+      <p data-i18n="installHelpCopy">Dans Safari, touchez Partager, puis « Sur l’écran d’accueil » et confirmez avec Ajouter.</p>
+      <button class="new-game-button" id="install-help-done" type="button" data-i18n="installHelpDone">Compris</button>
     </dialog>
   </body>
 </html>

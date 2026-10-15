@@ -1,5 +1,6 @@
 const FULL_MASK = 0b1111111110;
 const STORAGE_KEY = "sudoku-game-v1";
+const INSTALL_DISMISSED_KEY = "sudoku-install-dismissed";
 const TRANSLATIONS = {
   fr: {
     title: "Sudoku — une pause qui fait du bien",
@@ -52,6 +53,19 @@ const TRANSLATIONS = {
     helpStepTwo: "Activez Notes pour garder vos hypothèses dans une case.",
     helpStepThree: "Les cases colorées en rouge signalent un chiffre incorrect. Besoin d'aide ? Utilisez Indice.",
     gotIt: "C'est parti !",
+    installTitle: "Emportez Sudoku avec vous",
+    installMessage: "Installez l'app sur votre téléphone pour la retrouver facilement, sans publicité.",
+    installMessageIOS: "Ajoutez Sudoku à votre écran d'accueil pour le retrouver facilement, sans publicité.",
+    installButton: "Installer",
+    installInstructionsButton: "Comment faire",
+    dismissInstall: "Fermer",
+    installHelpEyebrow: "INSTALLATION",
+    installHelpTitle: "Ajouter Sudoku à l'écran d'accueil",
+    installHelpCopy: "Sur iPhone ou iPad, touchez Partager dans le navigateur, puis « Sur l’écran d’accueil » et confirmez avec Ajouter.",
+    installHelpDone: "Compris",
+    installedToast: "Sudoku est installé !",
+    installError: "L'installation n'a pas pu être lancée. Réessayez depuis le menu de votre navigateur.",
+    serviceWorkerError: "La préparation de l'installation a échoué. Servez le site en HTTPS puis réessayez.",
     numberLabel: "Chiffre {number}",
     numberRemaining: "{remaining} restant(s)",
     cellLabel: "Ligne {row}, colonne {column}{value}",
@@ -125,6 +139,19 @@ const TRANSLATIONS = {
     helpStepTwo: "Turn on Notes to keep your possibilities in a cell.",
     helpStepThree: "Red cells mark an incorrect number. Need a hand? Use Hint.",
     gotIt: "Let's play!",
+    installTitle: "Take Sudoku with you",
+    installMessage: "Install the app on your phone for quick access to ad-free Sudoku.",
+    installMessageIOS: "Add Sudoku to your Home Screen for quick access to ad-free Sudoku.",
+    installButton: "Install",
+    installInstructionsButton: "How to",
+    dismissInstall: "Dismiss",
+    installHelpEyebrow: "INSTALLATION",
+    installHelpTitle: "Add Sudoku to your Home Screen",
+    installHelpCopy: "On iPhone or iPad, tap Share in your browser, choose “Add to Home Screen,” then confirm with Add.",
+    installHelpDone: "Got it",
+    installedToast: "Sudoku is installed!",
+    installError: "The install prompt could not be opened. Try your browser's menu instead.",
+    serviceWorkerError: "App installation could not be prepared. Serve this site over HTTPS and try again.",
     numberLabel: "Number {number}",
     numberRemaining: "{remaining} left",
     cellLabel: "Row {row}, column {column}{value}",
@@ -166,6 +193,10 @@ const dialogElement = document.querySelector("#help-dialog");
 const themeButton = document.querySelector("#theme-button");
 const themeIcon = document.querySelector("#theme-icon");
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+const installBanner = document.querySelector("#install-banner");
+const installMessage = document.querySelector("#install-message");
+const installActionButton = document.querySelector("#install-action");
+const installHelpDialog = document.querySelector("#install-help-dialog");
 
 let puzzle = [];
 let solution = [];
@@ -180,6 +211,8 @@ let completed = false;
 let currentLanguage = "fr";
 let currentTheme = "light";
 let storageWarningShown = false;
+let deferredInstallPrompt = null;
+let installMode = null;
 let toastTimeout;
 
 function t(key, values = {}) {
@@ -587,6 +620,49 @@ function showToast(message) {
   toastTimeout = setTimeout(() => toastElement.classList.remove("visible"), 3000);
 }
 
+function isAppInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function wasInstallDismissed() {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === "true";
+  } catch (error) {
+    console.warn("Unable to read the local install prompt preference.", error);
+    return false;
+  }
+}
+
+function rememberInstallDismissal() {
+  try {
+    localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+  } catch (error) {
+    console.warn("Unable to save the local install prompt preference.", error);
+  }
+}
+
+function showInstallBanner(mode) {
+  installMode = mode;
+  const iosInstructions = mode === "ios";
+  const messageKey = iosInstructions ? "installMessageIOS" : "installMessage";
+  const actionKey = iosInstructions ? "installInstructionsButton" : "installButton";
+  installMessage.dataset.i18n = messageKey;
+  installMessage.textContent = t(messageKey);
+  installActionButton.dataset.i18n = actionKey;
+  installActionButton.textContent = t(actionKey);
+  installBanner.hidden = false;
+}
+
+function initializeInstallPrompt() {
+  if (isAppInstalled() || wasInstallDismissed()) return;
+  if (isIOSDevice()) showInstallBanner("ios");
+}
+
 function startGame(level = activeLevel) {
   activeLevel = level;
   const generated = makePuzzle(level);
@@ -643,6 +719,42 @@ document.querySelectorAll("[data-language]").forEach((button) => {
     applyLanguage();
   });
 });
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  if (isAppInstalled() || wasInstallDismissed()) return;
+  deferredInstallPrompt = event;
+  showInstallBanner("native");
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  installBanner.hidden = true;
+  rememberInstallDismissal();
+  showToast(t("installedToast"));
+});
+installActionButton.addEventListener("click", async () => {
+  if (installMode === "ios") {
+    installHelpDialog.showModal();
+    return;
+  }
+  if (!deferredInstallPrompt) return;
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  try {
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    installBanner.hidden = true;
+    if (choice.outcome === "accepted") rememberInstallDismissal();
+  } catch (error) {
+    console.error("Unable to open the browser's install prompt.", error);
+    showToast(t("installError"));
+  }
+});
+document.querySelector("#install-dismiss").addEventListener("click", () => {
+  installBanner.hidden = true;
+  rememberInstallDismissal();
+});
+document.querySelector("#close-install-help").addEventListener("click", () => installHelpDialog.close());
+document.querySelector("#install-help-done").addEventListener("click", () => installHelpDialog.close());
 document.querySelector("#help-button").addEventListener("click", () => dialogElement.showModal());
 themeButton.addEventListener("click", () => {
   currentTheme = currentTheme === "light" ? "dark" : "light";
@@ -688,8 +800,16 @@ setInterval(() => {
   }
 }, 1000);
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+    console.error("Unable to register the Sudoku service worker.", error);
+    showToast(t("serviceWorkerError"));
+  });
+}
+
 if (restoreGame()) applyLanguage();
 else {
   startGame();
   applyLanguage();
 }
+initializeInstallPrompt();
